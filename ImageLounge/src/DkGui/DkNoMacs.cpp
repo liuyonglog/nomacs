@@ -1420,7 +1420,7 @@ void DkNoMacs::openFile() {
 
 	QStringList openFilters = Settings::param().app().openFilters;
 	openFilters.pop_front();
-	openFilters.prepend(tr("All Files (*.*)"));
+	openFilters.append(tr("All Files (*.*)"));
 
 	// load system default open dialog
 	QString fileName = QFileDialog::getOpenFileName(this, tr("Open Image"),
