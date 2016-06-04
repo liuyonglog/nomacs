@@ -102,6 +102,8 @@ endif()
 # find Qt
 NMC_FINDQT()
 
+find_package(DCMTK REQUIRED)
+
 if (DISABLE_QT_DEBUG)
 	message (STATUS "disabling qt debug messages")
 	add_definitions(-DQT_NO_DEBUG_OUTPUT)
@@ -148,6 +150,8 @@ include_directories (
 	${QUAZIP_INCLUDE_DIRECTORY}
 	# ${ZLIB_INCLUDE_DIRS}
 	${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libqpsd
+	${DCMTK_INCLUDE_DIRS}
+	${DCMTK_INCLUDE_DIRS}/..
 )
 
 if (APPLE) # todo: somehow add this to Mac.cmake or MacBuildTarget.cmake

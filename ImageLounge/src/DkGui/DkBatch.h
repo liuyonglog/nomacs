@@ -312,7 +312,7 @@ private:
 	QSpinBox* mSbCompression = 0;
 	QLabel* mOldFileNameLabel = 0;
 	QLabel* mNewFileNameLabel = 0;
-	QString mExampleName = 0;
+	QString mExampleName = "";
 
 };
 

@@ -34,6 +34,7 @@
 #include <QDir>
 #include <QThread>
 #include <QImage>
+
 #pragma warning(pop)		// no warnings from includes - end
 
 #pragma warning(disable: 4251)	// TODO: remove
@@ -158,6 +159,7 @@ public:
 
 protected:
 	QImage computeIntern(const QString& file, QSharedPointer<QByteArray> ba, int forceLoad, int maxThumbSize, int minThumbSize);
+	QImage loadDICOMFile(const QString fileName);
 
 	QImage mImg;
 	QString mFile;

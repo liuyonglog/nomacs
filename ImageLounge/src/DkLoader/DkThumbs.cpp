@@ -41,7 +41,13 @@
 #include <QtConcurrentRun>
 #include <QTimer>
 #include <QBuffer>
+
+#include <dcfilefo.h>
+#include <dcmimage.h>
+#include <dcrledrg.h>
+#include <djdecode.h>
 #pragma warning(pop)		// no warnings from includes - end
+
 
 namespace nmc {
 
@@ -98,20 +104,27 @@ QImage DkThumbNail::computeIntern(const QString& filePath, const QSharedPointer<
 	if (QFileInfo(mFile).dir().path().contains(DkZipContainer::zipMarker())) 
 		baZip = DkZipContainer::extractImage(DkZipContainer::decodeZipFile(filePath), DkZipContainer::decodeImageFile(filePath));
 #endif
-	try {
-		if (baZip && !baZip->isEmpty())	
-			metaData.readMetaData(filePath, baZip);
-		else if (!ba || ba->isEmpty())
-			metaData.readMetaData(filePath);
-		else
-			metaData.readMetaData(filePath, ba);
-
-		// read the full image if we want to create new thumbnails
-		if (forceLoad != force_save_thumb)
-			thumb = metaData.getThumbnail();
+	if (filePath.contains(QRegExp("(dcm|DCM)", Qt::CaseInsensitive)))
+	{
+		thumb = loadDICOMFile(filePath);
 	}
-	catch(...) {
+	else
+	{
+		try {
+			if (baZip && !baZip->isEmpty())	
+				metaData.readMetaData(filePath, baZip);
+			else if (!ba || ba->isEmpty())
+				metaData.readMetaData(filePath);
+			else
+				metaData.readMetaData(filePath, ba);
+
+			// read the full image if we want to create new thumbnails
+			if (forceLoad != force_save_thumb)
+				thumb = metaData.getThumbnail();
+		}
+		catch(...) {
 		// do nothing - we'll load the full file
+		}
 	}
 	removeBlackBorder(thumb);
 
@@ -171,7 +184,7 @@ QImage DkThumbNail::computeIntern(const QString& filePath, const QSharedPointer<
 			forceLoad == force_full_thumb || 
 			forceLoad == force_save_thumb)) { // braces
 		
-		// flip size if the image is rotated by 90°
+		// flip size if the image is rotated by 90?
 		if (metaData.isTiff() && abs(orientation) == 90) {
 			int tmpW = imgW;
 			imgW = imgH;
@@ -270,6 +283,79 @@ QImage DkThumbNail::computeIntern(const QString& filePath, const QSharedPointer<
 
 	return thumb;
 }
+
+
+
+QImage DkThumbNail::loadDICOMFile(const QString fileName){
+
+	bool imgLoaded = true;
+	QImage image;
+	try{
+		DcmRLEDecoderRegistration::registerCodecs(OFFalse, OFFalse);
+		DJDecoderRegistration::registerCodecs(EDC_photometricInterpretation, EUC_default, EPC_default, OFFalse);
+		DcmFileFormat file;
+		file.loadFile(fileName.toStdString().c_str());
+		DcmDataset * dset = file.getDataset();
+		DicomImage* dcimage = new DicomImage(dset, file.getDataset()->getOriginalXfer(), CIF_MayDetachPixelData);
+
+		if (dcimage != NULL)
+		{
+			dcimage->setNoDisplayFunction();
+			dcimage->hideAllOverlays();
+			dcimage->setNoVoiTransformation();
+
+			if (dcimage->getStatus() == EIS_Normal)
+			{
+				Uint32 *pixelData = (Uint32 *)(dcimage->getOutputData(32));
+
+				if (pixelData != NULL)
+				{
+					Uint8 *colored = new Uint8[dcimage->getWidth() * dcimage->getHeight() * 4];
+					Uint8 *col = colored;
+					Uint32 *p = pixelData;
+					Uint32 p_max = 0;
+					Uint32 p_min = std::numeric_limits<Uint32>::max();
+
+					for (unsigned i = 0; i < dcimage->getWidth(); ++i)
+					for (unsigned j = 0; j < dcimage->getHeight(); ++j, ++p)
+					{
+						if (*p > p_max)
+							p_max = *p;
+
+						if (*p < p_min)
+							p_min = *p;
+					}
+
+					double a = 4294967295.f / ((double)p_max - (double)p_min);
+
+					p = pixelData;
+
+					for (unsigned i = 0; i < dcimage->getWidth(); ++i)
+					for (unsigned j = 0; j < dcimage->getHeight(); ++j, ++p)
+					{
+						*col = (Uint8)((255.f / 4294967295.f) * (a * ((double)(*p) - (double)p_min)));
+						++col;
+						*col = (Uint8)((255.f / 4294967295.f) * (a * ((double)(*p) - (double)p_min)));
+						++col;
+						*col = (Uint8)((255.f / 4294967295.f) * (a * ((double)(*p) - (double)p_min)));
+						++col;
+						*col = 255;
+						++col;
+					}
+
+					image = QImage(colored, dcimage->getWidth(), dcimage->getHeight(), QImage::Format_ARGB32).copy();
+					delete[] colored;
+				}
+			}
+			delete dcimage;
+		}
+	}
+	catch (...) {
+		imgLoaded = false;
+	}
+	return image;
+}
+
 
 /**
  * Removes potential black borders.

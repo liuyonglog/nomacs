@@ -33,6 +33,7 @@
 #include <QSharedPointer>
 #include <QVector>
 #include <QDebug>
+#include <QDataStream>
 #pragma warning(pop)
 
 namespace nmc {

@@ -134,6 +134,7 @@ public:
 		raw_loader,
 		roh_loader,
 		hdr_loader,
+		dcm_loader,
 	};
 
 	DkBasicLoader(int mode = mode_default);
@@ -282,6 +283,7 @@ public slots:
 	QImage rotate(const QImage& img, int orientation);
 
 protected:
+	bool loadDICOMFile(const QString& filePath, QSharedPointer<QByteArray> ba = QSharedPointer<QByteArray>());
 	bool loadRohFile(const QString& filePath, QSharedPointer<QByteArray> ba = QSharedPointer<QByteArray>());
 	bool loadRawFile(const QString& filePath, QSharedPointer<QByteArray> ba = QSharedPointer<QByteArray>(), bool fast = false);
 	void indexPages(const QString& filePath);

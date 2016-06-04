@@ -31,6 +31,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #pragma warning(push, 0)	// no warnings from includes - begin
 #include <QObject>
 #include <QTime>
+#include <QDataStream>
 #pragma warning(pop)		// no warnings from includes - end
 
 #ifndef DllCoreExport
